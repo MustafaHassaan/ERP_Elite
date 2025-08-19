@@ -1,0 +1,178 @@
+﻿@using ERP_Task_Elite.VM
+@model AccountStatementViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Accounts Statement";
+}
+<div class="container mt-4">
+    <h2>@ViewData["Title"]</h2>
+    <form method="get">
+        <div class="row">
+            <div class="col">
+                <label for="accountSelect" class="form-label">Account</label>
+                <select id="accountSelect" name="accountId" class="form-control">
+                    <option value="">-- Select Account --</option>
+                    @foreach (var acc in Model.Accounts)
+                    {
+                        <option value="@acc.BalanceId" @(Model.SelectedAccountId == acc.BalanceId ? "selected" : "")>
+                            @acc.BalanceId - @acc.BalanceName
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col">
+                <label for="fromDate" class="form-label">From Date</label>
+                <input type="date" id="fromDate" name="fromDate" class="form-control" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col">
+                <label for="toDate" class="form-label">To Date</label>
+                <input type="date" id="toDate" name="toDate" class="form-control" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col col g-2 mb-2 mt-4">
+                <button type="submit" class="btn btn-outline-primary"><i class="fas fa-search"></i></button>
+                <button id="btnPrint" class="btn btn-outline-secondary"><i class="fas fa-print"></i></button>
+                <a id="btnExport" class="btn btn-outline-success" href="@Url.Action("ExportToExcel", "Accounts", new { 
+                       accountId = Model.SelectedAccountId, 
+                       fromDate = Model.FromDate?.ToString("yyyy-MM-dd"), 
+                       toDate = Model.ToDate?.ToString("yyyy-MM-dd") 
+                   })"><i class="fas fa-file-excel"></i></a>
+            </div>
+        </div>
+    </form>
+    @if (Model.Transactions != null && Model.Transactions.Any())
+    {
+        var totalDebit = Model.Transactions.Sum(t => t.Debtor ?? 0);
+        var totalCredit = Model.Transactions.Sum(t => t.Creditor ?? 0);
+        var totalFinal = Model.Transactions.Sum(t => t.FinalBalance);
+        var firstPrevBalance = Model.Transactions.Sum(t => t.PrevBalnce ?? 0);
+        <div id="detailes">
+        <div class="mb-3">
+    <strong>Account Statement (Full Period Transactions)</strong> 
+    <div class="row text-center">
+        <div class="col">
+            <strong>Debits : </strong> @Model.TotalDebitAll
+        </div>
+        <div class="col">
+            <strong>Credits : </strong> @Model.TotalCreditAll
+        </div>
+        <div class="col">
+            <strong>First Previous Balance : </strong> @Model.FirstPrevBalanceAll
+        </div>
+        <div class="col">
+            <strong>Final Balance : </strong> @Model.TotalFinalAll
+        </div>
+    </div>
+</div>        
+        <table class="table table-bordered table-striped table-hover text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>Account ID</th>
+                    <th>Account Name</th>
+                    <th>Previous Balance</th>
+                    <th>Debit Amount</th>
+                    <th>Credit Amount</th>
+                    <th>Final Balance</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Transactions)
+                {
+                    <tr>
+                        <td>@item.BalanceId</td>
+                        <td>@item.BalanceName</td>
+                        <td>@(item.PrevBalnce ?? 0)</td>
+                        <td>@(item.Debtor ?? 0)</td>
+                        <td>@(item.Creditor ?? 0)</td>
+                        <td>@item.FinalBalance</td>
+                        <td>
+                            <button class="btn btn-sm btn-info"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#detailsModal"
+                                    data-id="@item.BalanceHisId">
+                                <i class="fas fa-info"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-secondary">
+                <tr>
+                    <th colspan="2">Totals:</th>
+                    <th>@firstPrevBalance</th>
+                    <th>@totalDebit</th>
+                    <th>@totalCredit</th>
+                    <th>@totalFinal</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+        </div>
+    }    
+    
+    <div class="mb-3">
+        <nav>
+            <ul class="pagination">
+        @if (Model.PageNumber > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new {
+                    accountId = Model.SelectedAccountId,
+                    fromDate = Model.FromDate?.ToString("yyyy-MM-dd"),
+                    toDate = Model.ToDate?.ToString("yyyy-MM-dd"),
+                    page = Model.PageNumber - 1,
+                    pageSize = Model.PageSize
+                })">Previous</a>
+            </li>
+        }
+
+        @for (int i = 1; i <= Model.TotalPages; i++)
+        {
+            if (i == 1 || i == Model.TotalPages || 
+                (i >= Model.PageNumber - 2 && i <= Model.PageNumber + 2))
+            {
+                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new {
+                        accountId = Model.SelectedAccountId,
+                        fromDate = Model.FromDate?.ToString("yyyy-MM-dd"),
+                        toDate = Model.ToDate?.ToString("yyyy-MM-dd"),
+                        page = i,
+                        pageSize = Model.PageSize
+                    })">@i</a>
+                </li>
+            }
+            else if (i == 2 || i == Model.TotalPages - 1)
+            {
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            }
+        }
+
+        @if (Model.PageNumber < Model.TotalPages)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new {
+                    accountId = Model.SelectedAccountId,
+                    fromDate = Model.FromDate?.ToString("yyyy-MM-dd"),
+                    toDate = Model.ToDate?.ToString("yyyy-MM-dd"),
+                    page = Model.PageNumber + 1,
+                    pageSize = Model.PageSize
+                })">Next</a>
+            </li>
+        }
+    </ul>
+        </nav>
+    </div>
+</div>
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Transaction Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detailsContainer">
+            <partial name="_TransactionDetails" />
+        </div>
+    </div>
+  </div>
+</div>

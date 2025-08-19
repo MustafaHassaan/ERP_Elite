@@ -1,0 +1,12 @@
+﻿@model ERP_Task_Elite.VM.TransactionVM
+
+<div class="p-3">
+    <h5>Transaction Details</h5>
+    <p><strong>ID:</strong> @Model.BalanceHisId</p>
+    <p><strong>Account ID:</strong> @Model.BalanceId</p>
+    <p><strong>Date:</strong> @Model.TranDate?.ToString("yyyy-MM-dd")</p>
+    <p><strong>Previous Balance:</strong> @(Model.PrevBalnce ?? 0)</p>
+    <p><strong>Debit:</strong> @(Model.Debtor ?? 0)</p>
+    <p><strong>Credit:</strong> @(Model.Creditor ?? 0)</p>
+    <p><strong>Description:</strong> @Model.Notes</p>
+</div>
